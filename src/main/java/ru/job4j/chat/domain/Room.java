@@ -19,7 +19,7 @@ public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-    @Column(name = "role_name", nullable = false)
+    @Column(name = "room_name", nullable = false)
     private String name;
     @ManyToOne
     @JoinColumn(name = "admin_id", nullable = false)

@@ -85,12 +85,10 @@ public class PersonController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable int id) {
-        Optional<Person> person = this.persons.findById(id);
-        if (person.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
         LOG.info("Delete person by id={}", id);
-        this.persons.delete(person.get());
+        Person person = new Person();
+        person.setId(id);
+        this.persons.delete(person);
         return ResponseEntity.ok().build();
     }
 }

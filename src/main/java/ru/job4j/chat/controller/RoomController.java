@@ -51,7 +51,7 @@ public class RoomController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Room> findById(@PathVariable int id) {
-        LOG.info("Find room by id={}", id);
+        LOG.info("Room find by id={}", id);
         Optional<Room> room = this.rooms.findById(id);
         room.ifPresent(r -> r.setAdmin(
                 this.rest.getForObject(
@@ -82,12 +82,10 @@ public class RoomController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable int id) {
-        Optional<Room> role = rooms.findById(id);
-        if (role.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
         LOG.info("Delete room by id={}", id);
-        this.rooms.delete(role.get());
+        Room room = new Room();
+        room.setId(id);
+        this.rooms.delete(room);
         return ResponseEntity.ok().build();
     }
 }

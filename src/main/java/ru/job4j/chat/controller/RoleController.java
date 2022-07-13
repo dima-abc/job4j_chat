@@ -64,12 +64,10 @@ public class RoleController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable int id) {
-        Optional<Role> role = roles.findById(id);
-        if (role.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
         LOG.info("Delete role by id={}", id);
-        this.roles.delete(role.get());
+        Role role = new Role();
+        role.setId(id);
+        this.roles.delete(role);
         return ResponseEntity.ok().build();
     }
 }

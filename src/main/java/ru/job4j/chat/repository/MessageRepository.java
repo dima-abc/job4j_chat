@@ -20,9 +20,7 @@ import java.util.List;
  */
 @Repository
 public interface MessageRepository extends CrudRepository<Message, Integer> {
-    public List<Message> findAllByRoom(Room room);
+    List<Message> findAllByRoom(Room room);
 
-    public List<Message> findAllByPerson(Person person);
-
-    public List<Message> findAllByRoomAndPerson(Room room, Person person);
+    List<Message> findAllByPerson(Person person);
 }

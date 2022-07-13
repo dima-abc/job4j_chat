@@ -9,4 +9,6 @@ create table persons
 );
 
 insert into persons(login, password, role_id) values ('root', '123', (select distinct id from roles where role_name = 'ROLE_ADMIN'));
-insert into persons(login, password, role_id) values ('user', '1', (select distinct id from roles where role_name = 'ROLE_USER'));
+insert into persons(login, password, role_id) values ('user2', '1', (select distinct id from roles where role_name = 'ROLE_USER'));
+insert into persons(login, password, role_id) values ('user3', '1', (select distinct id from roles where role_name = 'ROLE_USER'));
+insert into persons(login, password, role_id) values ('user4', '1', (select distinct id from roles where role_name = 'ROLE_USER'));

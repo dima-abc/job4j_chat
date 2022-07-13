@@ -54,8 +54,4 @@ public class MessageService implements IService<Message> {
     public List<Message> findAllByPerson(Person person) {
         return this.messages.findAllByPerson(person);
     }
-
-    public List<Message> findAllByRoomAndPerson(Room room, Person person) {
-        return this.messages.findAllByRoomAndPerson(room, person);
-    }
 }
