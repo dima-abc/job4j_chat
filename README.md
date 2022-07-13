@@ -1,5 +1,5 @@
 
-
+[![Java CI with Maven](https://github.com/Dima-Stepanov/job4j_chat/actions/workflows/maven.yml/badge.svg)](https://github.com/Dima-Stepanov/job4j_chat/actions/workflows/maven.yml)
 
 <h1>2. Создания чата на Rest API. [#9143]</h1>
 
