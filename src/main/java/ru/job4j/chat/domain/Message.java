@@ -19,7 +19,8 @@ public class Message {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-    private String name;
+    @Column(name = "message_text")
+    private String text;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "person_id")
     private Person person;
@@ -29,7 +30,7 @@ public class Message {
 
     public static Message of(String text, Person person, Room room) {
         Message message = new Message();
-        message.name = text;
+        message.text = text;
         message.person = person;
         message.room = room;
         return message;
@@ -44,11 +45,11 @@ public class Message {
     }
 
     public String getName() {
-        return name;
+        return text;
     }
 
     public void setName(String text) {
-        this.name = text;
+        this.text = text;
     }
 
     public Person getPerson() {
@@ -86,7 +87,7 @@ public class Message {
 
     @Override
     public String toString() {
-        return "Message{id=" + id + ", text='" + name + '\''
+        return "Message{id=" + id + ", text='" + text + '\''
                 + ", person=" + person + ", room=" + room + '}';
     }
 }

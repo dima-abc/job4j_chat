@@ -19,12 +19,16 @@ public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-    @Column(nullable = false)
+    @Column(name = "role_name", nullable = false)
     private String name;
+    @ManyToOne
+    @JoinColumn(name = "admin_id", nullable = false)
+    private Person admin;
 
-    public static Room of(String name) {
+    public static Room of(String name, Person admin) {
         Room room = new Room();
         room.name = name;
+        room.admin = admin;
         return room;
     }
 
@@ -42,6 +46,14 @@ public class Room {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Person getAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(Person admin) {
+        this.admin = admin;
     }
 
     @Override
@@ -63,6 +75,7 @@ public class Room {
 
     @Override
     public String toString() {
-        return "Room{id=" + id + ", name='" + name + '\'' + '}';
+        return "Room{id=" + id + ", name='" + name + '\''
+                + ", admin=" + admin + '}';
     }
 }

@@ -1,7 +1,12 @@
 package ru.job4j.chat.repository;
 
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 import ru.job4j.chat.domain.Message;
+import ru.job4j.chat.domain.Person;
+import ru.job4j.chat.domain.Room;
+
+import java.util.List;
 
 /**
  * 3. Мидл
@@ -13,5 +18,11 @@ import ru.job4j.chat.domain.Message;
  * @author Dmitry Stepanov, user Dima_Nout
  * @since 13.07.2022
  */
+@Repository
 public interface MessageRepository extends CrudRepository<Message, Integer> {
+    public List<Message> findAllByRoom(Room room);
+
+    public List<Message> findAllByPerson(Person person);
+
+    public List<Message> findAllByRoomAndPerson(Room room, Person person);
 }
