@@ -16,4 +16,5 @@ import ru.job4j.chat.domain.Person;
  */
 @Repository
 public interface PersonRepository extends CrudRepository<Person, Integer> {
+    Person findPersonByLogin(String login);
 }

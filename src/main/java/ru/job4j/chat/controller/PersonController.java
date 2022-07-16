@@ -2,18 +2,16 @@ package ru.job4j.chat.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import ru.job4j.chat.config.RestTemplateConfig;
 import ru.job4j.chat.domain.Person;
 import ru.job4j.chat.domain.Role;
 import ru.job4j.chat.service.PersonService;
 
-import java.util.List;
-import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
 
 /**
@@ -33,14 +31,17 @@ public class PersonController {
     private final RestTemplate rest;
     private final PersonService persons;
     private static final String API_ROLE_ID = "http://localhost:8080/role/{id}";
+    private final BCryptPasswordEncoder encoder;
 
-    public PersonController(RestTemplate rest, PersonService persons) {
+    public PersonController(RestTemplate rest, PersonService persons,
+                            BCryptPasswordEncoder encoder) {
         this.rest = rest;
         this.persons = persons;
+        this.encoder = encoder;
     }
 
     @GetMapping("/")
-    public Iterable<Person> findAll() {
+    public Iterable<Person> findAll(HttpServletRequest req) {
         LOG.info("Find all person");
         Iterable<Person> result = this.persons.findAll();
         for (Person person : result) {
@@ -70,6 +71,7 @@ public class PersonController {
     @PostMapping("/")
     public ResponseEntity<Person> create(@RequestBody Person person) {
         LOG.info("Save person={}", person);
+        person.setPassword(encoder.encode(person.getPassword()));
         return new ResponseEntity<>(
                 this.persons.save(person),
                 HttpStatus.CREATED
@@ -79,6 +81,7 @@ public class PersonController {
     @PutMapping("/")
     public ResponseEntity<Void> update(@RequestBody Person person) {
         LOG.info("Update person={}", person);
+        person.setPassword(encoder.encode(person.getPassword()));
         this.persons.save(person);
         return ResponseEntity.ok().build();
     }
