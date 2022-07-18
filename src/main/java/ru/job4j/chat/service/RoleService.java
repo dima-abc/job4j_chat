@@ -1,5 +1,7 @@
 package ru.job4j.chat.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import ru.job4j.chat.domain.Role;
 import ru.job4j.chat.repository.RoleRepository;
@@ -18,6 +20,7 @@ import java.util.Optional;
  */
 @Service
 public class RoleService implements IService<Role> {
+    private static final Logger LOG = LoggerFactory.getLogger(RoleService.class.getSimpleName());
     private final RoleRepository roles;
 
     public RoleService(RoleRepository roles) {
@@ -26,7 +29,7 @@ public class RoleService implements IService<Role> {
 
     @Override
     public Role save(Role type) {
-        return this.roles.save(type);
+            return this.roles.save(type);
     }
 
     @Override

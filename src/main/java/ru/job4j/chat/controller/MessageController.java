@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.chat.domain.Message;
 import ru.job4j.chat.domain.Person;
 import ru.job4j.chat.domain.Room;
@@ -66,8 +67,10 @@ public class MessageController {
             m.setRoom(room);
         });
         return new ResponseEntity<>(
-                message.orElse(new Message()),
-                message.isPresent() ? HttpStatus.OK : HttpStatus.NOT_FOUND
+                message.orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Message is not found. Please, check requisites."
+                )),
+                HttpStatus.OK
         );
     }
 
