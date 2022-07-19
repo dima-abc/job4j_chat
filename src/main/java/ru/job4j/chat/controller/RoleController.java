@@ -85,7 +85,7 @@ public class RoleController {
             throw new IllegalArgumentException("Invalid Role name. Role name start with 'ROLE_'");
         }
         this.roles.save(role);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @DeleteMapping("/{id}")
@@ -94,7 +94,7 @@ public class RoleController {
         Role role = new Role();
         role.setId(id);
         this.roles.delete(role);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 
     @ExceptionHandler(value = {IllegalArgumentException.class})
