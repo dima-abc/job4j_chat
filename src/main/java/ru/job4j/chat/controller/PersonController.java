@@ -9,12 +9,15 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.chat.domain.Person;
+import ru.job4j.chat.domain.PersonDTO;
 import ru.job4j.chat.domain.Role;
 import ru.job4j.chat.service.PersonService;
+import ru.job4j.chat.service.RoleService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Optional;
 
@@ -38,13 +41,16 @@ public class PersonController {
     private static final String API_ROLE_ID = "http://localhost:8080/role/{id}";
     private final BCryptPasswordEncoder encoder;
     private final ObjectMapper objectMapper;
+    private final RoleService roles;
 
     public PersonController(RestTemplate rest, PersonService persons,
-                            BCryptPasswordEncoder encoder, ObjectMapper objectMapper) {
+                            BCryptPasswordEncoder encoder, ObjectMapper objectMapper,
+                            RoleService roles) {
         this.rest = rest;
         this.persons = persons;
         this.encoder = encoder;
         this.objectMapper = objectMapper;
+        this.roles = roles;
     }
 
     @GetMapping("/")
@@ -77,38 +83,84 @@ public class PersonController {
         );
     }
 
+    /**
+     * Создание новой записи через PersonDTO.
+     *
+     * @param personDTO DTO
+     * @return ResponseEntity
+     */
     @PostMapping("/")
-    public ResponseEntity<Person> create(@RequestBody Person person) {
-        LOG.info("Save person={}", person);
-        if (person.getLogin() == null || person.getPassword() == null) {
+    public ResponseEntity<Person> create(@RequestBody PersonDTO personDTO) {
+        LOG.info("Save person={}", personDTO);
+        Role role = roles.findById(personDTO.getRoleId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (personDTO.getLogin() == null || personDTO.getPassword() == null) {
             throw new NullPointerException("Invalid login or password");
         }
-        if (person.getPassword().length() < 6) {
+        if (personDTO.getPassword().length() < 6) {
             throw new IllegalArgumentException(
                     "Invalid password. "
                             + "Password length must be more than 5 characters.");
         }
-        person.setPassword(encoder.encode(person.getPassword()));
+        personDTO.setPassword(encoder.encode(personDTO.getPassword()));
+        Person person = Person.of(personDTO.getLogin(), personDTO.getPassword(), role);
         return new ResponseEntity<>(
                 this.persons.save(person),
                 HttpStatus.CREATED
         );
     }
 
-    @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody Person person) {
-        LOG.info("Update person={}", person);
-        if (person.getLogin() == null || person.getPassword() == null) {
-            throw new NullPointerException("Invalid login or password");
+    /**
+     * Обновление заполненных полей модели через DTO.
+     *
+     * @param personDTO PersonDTO
+     * @return ResponseEntity
+     * @throws InvocationTargetException exception
+     * @throws IllegalAccessException exception
+     */
+    @PatchMapping("/")
+    public ResponseEntity<PersonDTO> updatePerson(@RequestBody PersonDTO personDTO) throws InvocationTargetException, IllegalAccessException {
+        Optional<Person> current = persons.findById(personDTO.getId());
+        if (current.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        if (person.getPassword().length() < 6) {
+        if (personDTO.getPassword() != null && personDTO.getPassword().length() < 6) {
             throw new IllegalArgumentException(
                     "Invalid password. "
                             + "Password length must be more than 5 characters.");
         }
-        person.setPassword(encoder.encode(person.getPassword()));
-        LOG.info("Encoding password={}", person.getPassword());
-        this.persons.save(person);
+        if (personDTO.getPassword() != null) {
+            personDTO.setPassword(encoder.encode(personDTO.getPassword()));
+        }
+        PersonDTO currentDTO = persons.domainToDTO(current.get());
+        currentDTO = persons.pathUpdate(currentDTO, personDTO);
+        current = Optional.of(persons.dtoToDomain(currentDTO));
+        persons.save(current.get());
+        return new ResponseEntity<>(
+                currentDTO,
+                HttpStatus.OK
+        );
+    }
+
+    /**
+     * Обновление Person через DTO
+     *
+     * @param personDTO PersonDTO
+     * @return ResponseEntity
+     */
+    @PutMapping("/")
+    public ResponseEntity<Void> update(@RequestBody PersonDTO personDTO) {
+        LOG.info("Update person={}", personDTO);
+        if (personDTO.getLogin() == null || personDTO.getPassword() == null) {
+            throw new NullPointerException("Invalid login or password");
+        }
+        if (personDTO.getPassword().length() < 6) {
+            throw new IllegalArgumentException(
+                    "Invalid password. "
+                            + "Password length must be more than 5 characters.");
+        }
+        personDTO.setPassword(encoder.encode(personDTO.getPassword()));
+        this.persons.save(persons.dtoToDomain(personDTO));
         return ResponseEntity.ok().build();
     }
 

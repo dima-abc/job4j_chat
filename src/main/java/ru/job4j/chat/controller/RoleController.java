@@ -1,7 +1,6 @@
 package ru.job4j.chat.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.hibernate.engine.jdbc.spi.SqlExceptionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -14,9 +13,9 @@ import ru.job4j.chat.service.RoleService;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.sql.SQLDataException;
-import java.sql.SQLException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -60,8 +59,15 @@ public class RoleController {
         );
     }
 
+    /**
+     * Создание новой записи через Map и DTO
+     *
+     * @param body Map
+     * @return ResponseEntity
+     */
     @PostMapping("/")
-    public ResponseEntity<Role> create(@RequestBody Role role) {
+    public ResponseEntity<Role> create(@RequestBody Map<String, String> body) {
+        Role role = Role.of(body.get("name"));
         LOG.info("Create role={}", role);
         if (role.getName() == null) {
             throw new NullPointerException("Invalid role name");
@@ -75,8 +81,40 @@ public class RoleController {
         );
     }
 
+    /**
+     * Обновление заполненных полей через рефлексию
+     *
+     * @param role Role
+     * @return ResponseEntity
+     * @throws InvocationTargetException exception
+     * @throws IllegalAccessException    exception
+     */
+    @PatchMapping("/")
+    public ResponseEntity<Role> updatePatch(@RequestBody Role role) throws InvocationTargetException, IllegalAccessException {
+        Optional<Role> current = roles.findById(role.getId());
+        if (current.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        current = Optional.of(roles.pathUpdate(current.get(), role));
+        if (!current.get().getName().startsWith("ROLE_")) {
+            throw new IllegalArgumentException("Invalid Role name. Role name start with 'ROLE_'");
+        }
+        return new ResponseEntity<>(
+                roles.save(current.get()),
+                HttpStatus.OK
+        );
+    }
+
+    /**
+     * Обновление модели через Map DTO.
+     *
+     * @param body Map
+     * @return ResponseEntity
+     */
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody Role role) {
+    public ResponseEntity<Void> update(@RequestBody Map<String, String> body) {
+        Role role = Role.of(body.get("name"));
+        role.setId(Integer.parseInt(body.get("id")));
         LOG.info("Update role={}", role);
         if (role.getName() == null) {
             throw new NullPointerException("Invalid role name");

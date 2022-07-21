@@ -9,8 +9,11 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.chat.domain.Person;
 import ru.job4j.chat.domain.Room;
+import ru.job4j.chat.domain.RoomDTO;
+import ru.job4j.chat.service.PersonService;
 import ru.job4j.chat.service.RoomService;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Optional;
 
 /**
@@ -28,12 +31,15 @@ import java.util.Optional;
 public class RoomController {
     private static final Logger LOG = LoggerFactory.getLogger(RoomController.class.getSimpleName());
     private static final String API_PERSON_ID = "http://localhost:8080/person/{id}";
+    private final PersonService persons;
     private final RestTemplate rest;
     private final RoomService rooms;
 
-    public RoomController(RestTemplate rest, RoomService rooms) {
+    public RoomController(RestTemplate rest, RoomService rooms,
+                          PersonService persons) {
         this.rest = rest;
         this.rooms = rooms;
+        this.persons = persons;
     }
 
     @GetMapping("/")
@@ -67,24 +73,64 @@ public class RoomController {
         );
     }
 
+    /**
+     * Создание новой записи через DTO
+     *
+     * @param roomDTO RoomDTO
+     * @return ResponseEntity
+     */
     @PostMapping("/")
-    public ResponseEntity<Room> create(@RequestBody Room room) {
-        LOG.info("Create room={}", room);
-        if (room.getName() == null) {
+    public ResponseEntity<RoomDTO> create(@RequestBody RoomDTO roomDTO) {
+        LOG.info("Create room={}", roomDTO);
+        if (roomDTO.getName() == null) {
             throw new NullPointerException("Invalid room name");
         }
+        var admin = persons.findById(roomDTO.getAdminId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        Room room = Room.of(roomDTO.getName(), admin);
         return new ResponseEntity<>(
-                this.rooms.save(room),
+                rooms.domainToDTO(rooms.save(room)),
                 HttpStatus.CREATED
         );
     }
 
+    /**
+     * Обновление заполненных полей через рефлексию и DTO
+     *
+     * @param roomDTO RoomDTO
+     * @return ResponseEntity
+     * @throws InvocationTargetException exception
+     * @throws IllegalAccessException    exception
+     */
+    @PatchMapping("/")
+    public ResponseEntity<RoomDTO> updateRoom(@RequestBody RoomDTO roomDTO) throws InvocationTargetException, IllegalAccessException {
+        Optional<Room> current = rooms.findById(roomDTO.getId());
+        if (current.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        RoomDTO currentDTO = rooms.domainToDTO(current.get());
+        currentDTO = rooms.pathUpdate(currentDTO, roomDTO);
+        current = Optional.of(rooms.dtoToDomain(currentDTO));
+        rooms.save(current.get());
+        return new ResponseEntity<>(
+                currentDTO,
+                HttpStatus.OK
+        );
+    }
+
+    /**
+     * Обновление модели через DTO
+     *
+     * @param roomDTO RoomDTO
+     * @return ResponseEntity
+     */
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody Room room) {
-        LOG.info("Update room={}", room);
-        if (room.getName() == null) {
+    public ResponseEntity<Void> update(@RequestBody RoomDTO roomDTO) {
+        LOG.info("Update room={}", roomDTO);
+        if (roomDTO.getName() == null) {
             throw new NullPointerException("Invalid room name");
         }
+        Room room = rooms.dtoToDomain(roomDTO);
         this.rooms.save(room);
         return ResponseEntity.ok().build();
     }

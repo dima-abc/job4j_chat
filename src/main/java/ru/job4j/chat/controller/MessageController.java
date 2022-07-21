@@ -8,10 +8,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.chat.domain.Message;
+import ru.job4j.chat.domain.MessageDTO;
 import ru.job4j.chat.domain.Person;
 import ru.job4j.chat.domain.Room;
 import ru.job4j.chat.service.MessageService;
+import ru.job4j.chat.service.PersonService;
+import ru.job4j.chat.service.RoomService;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,10 +37,15 @@ public class MessageController {
     private final MessageService messages;
     private static final String API_PERSON_ID = "http://localhost:8080/person/{id}";
     private static final String API_ROOM_ID = "http://localhost:8080/room/{id}";
+    private final RoomService rooms;
+    private final PersonService persons;
 
-    public MessageController(RestTemplate rest, MessageService messages) {
+    public MessageController(RestTemplate rest, MessageService messages,
+                             RoomService rooms, PersonService persons) {
         this.rest = rest;
         this.messages = messages;
+        this.rooms = rooms;
+        this.persons = persons;
     }
 
     @GetMapping("/")
@@ -74,18 +83,54 @@ public class MessageController {
         );
     }
 
+    /**
+     * Создание новой записи через MessageDTO.
+     *
+     * @param messageDTO MessageDTO
+     * @return ResponseEntity.
+     */
     @PostMapping("/")
-    public ResponseEntity<Message> create(@RequestBody Message message) {
-        LOG.info("Save message={}", message);
+    public ResponseEntity<MessageDTO> create(@RequestBody MessageDTO messageDTO) {
+        LOG.info("Save message={}", messageDTO);
+        Person person = persons.findById(messageDTO.getPersonId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        Room room = rooms.findById(messageDTO.getRoomId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        Message message = Message.of(messageDTO.getText(), person, room);
         return new ResponseEntity<>(
-                this.messages.save(message),
+                messages.domainToDTO(messages.save(message)),
                 HttpStatus.CREATED
         );
     }
 
+    /**
+     * Обновление заполненных полей через рефлексию.
+     *
+     * @param messageDTO DTO модель
+     * @return ResponseEntity
+     * @throws InvocationTargetException exception
+     * @throws IllegalAccessException    exception
+     */
+    @PatchMapping("/")
+    public ResponseEntity<MessageDTO> updateMessage(@RequestBody MessageDTO messageDTO)
+            throws InvocationTargetException, IllegalAccessException {
+        Optional<Message> current = messages.findById(messageDTO.getId());
+        if (current.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        MessageDTO currentDTO = messages.domainToDTO(current.get());
+        currentDTO = messages.pathUpdate(currentDTO, messageDTO);
+        messages.save(messages.dtoToDomain(currentDTO));
+        return new ResponseEntity<>(
+                currentDTO,
+                HttpStatus.OK
+        );
+    }
+
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody Message message) {
-        LOG.info("Update message={}", message);
+    public ResponseEntity<Void> update(@RequestBody MessageDTO messageDTO) {
+        LOG.info("Update message={}", messageDTO);
+        Message message = messages.dtoToDomain(messageDTO);
         this.messages.save(message);
         return ResponseEntity.ok().build();
     }

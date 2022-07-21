@@ -19,7 +19,7 @@ import java.util.Optional;
  * @since 13.07.2022
  */
 @Service
-public class RoleService implements IService<Role> {
+public class RoleService implements IService<Role, Role> {
     private static final Logger LOG = LoggerFactory.getLogger(RoleService.class.getSimpleName());
     private final RoleRepository roles;
 
@@ -29,7 +29,7 @@ public class RoleService implements IService<Role> {
 
     @Override
     public Role save(Role type) {
-            return this.roles.save(type);
+        return this.roles.save(type);
     }
 
     @Override
@@ -45,5 +45,16 @@ public class RoleService implements IService<Role> {
     @Override
     public Iterable<Role> findAll() {
         return this.roles.findAll();
+    }
+
+
+    @Override
+    public Role dtoToDomain(Role dto) {
+        return dto;
+    }
+
+    @Override
+    public Role domainToDTO(Role domain) {
+        return domain;
     }
 }

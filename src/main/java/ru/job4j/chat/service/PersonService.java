@@ -2,6 +2,8 @@ package ru.job4j.chat.service;
 
 import org.springframework.stereotype.Service;
 import ru.job4j.chat.domain.Person;
+import ru.job4j.chat.domain.PersonDTO;
+import ru.job4j.chat.domain.Role;
 import ru.job4j.chat.repository.PersonRepository;
 
 import java.util.Optional;
@@ -17,7 +19,7 @@ import java.util.Optional;
  * since 13.07.2022
  */
 @Service
-public class PersonService implements IService<Person> {
+public class PersonService implements IService<Person, PersonDTO> {
     private final PersonRepository persons;
 
     public PersonService(PersonRepository persons) {
@@ -42,5 +44,21 @@ public class PersonService implements IService<Person> {
     @Override
     public Iterable<Person> findAll() {
         return this.persons.findAll();
+    }
+
+    @Override
+    public Person dtoToDomain(PersonDTO dto) {
+        Role role = new Role();
+        role.setId(dto.getRoleId());
+        Person person = Person.of(dto.getLogin(), dto.getPassword(), role);
+        person.setId(dto.getId());
+        return person;
+    }
+
+    @Override
+    public PersonDTO domainToDTO(Person domain) {
+        return PersonDTO.of(domain.getId(), domain.getLogin(),
+                domain.getPassword(),
+                domain.getRole().getId());
     }
 }

@@ -1,7 +1,9 @@
 package ru.job4j.chat.service;
 
+import liquibase.pro.packaged.M;
 import org.springframework.stereotype.Service;
 import ru.job4j.chat.domain.Message;
+import ru.job4j.chat.domain.MessageDTO;
 import ru.job4j.chat.domain.Person;
 import ru.job4j.chat.domain.Room;
 import ru.job4j.chat.repository.MessageRepository;
@@ -20,7 +22,7 @@ import java.util.Optional;
  * @since 13.07.2022
  */
 @Service
-public class MessageService implements IService<Message> {
+public class MessageService implements IService<Message, MessageDTO> {
     private final MessageRepository messages;
 
     public MessageService(MessageRepository messages) {
@@ -53,5 +55,23 @@ public class MessageService implements IService<Message> {
 
     public List<Message> findAllByPerson(Person person) {
         return this.messages.findAllByPerson(person);
+    }
+
+
+    @Override
+    public Message dtoToDomain(MessageDTO dto) {
+        Person person = new Person();
+        person.setId(dto.getPersonId());
+        Room room = new Room();
+        room.setId(dto.getRoomId());
+        Message message = Message.of(dto.getText(), person, room);
+        message.setId(dto.getId());
+        return message;
+    }
+
+    @Override
+    public MessageDTO domainToDTO(Message domain) {
+        return MessageDTO.of(domain.getId(), domain.getText(),
+                domain.getPerson().getId(), domain.getRoom().getId());
     }
 }

@@ -44,11 +44,11 @@ public class Message {
         this.id = id;
     }
 
-    public String getName() {
+    public String getText() {
         return text;
     }
 
-    public void setName(String text) {
+    public void setText(String text) {
         this.text = text;
     }
 
