@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
@@ -11,10 +12,12 @@ import ru.job4j.chat.domain.Message;
 import ru.job4j.chat.domain.MessageDTO;
 import ru.job4j.chat.domain.Person;
 import ru.job4j.chat.domain.Room;
+import ru.job4j.chat.handlers.Operation;
 import ru.job4j.chat.service.MessageService;
 import ru.job4j.chat.service.PersonService;
 import ru.job4j.chat.service.RoomService;
 
+import javax.validation.Valid;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +27,7 @@ import java.util.Optional;
  * 3.4. Spring
  * 3.4.8. Rest
  * 2. Создания чата на Rest API. [#9143]
+ * 8. Валидация моделей в Spring REST [#504801]
  * MessageController rest api модели message.
  *
  * @author Dmitry Stepanov, user Dima_Nout
@@ -90,7 +94,8 @@ public class MessageController {
      * @return ResponseEntity.
      */
     @PostMapping("/")
-    public ResponseEntity<MessageDTO> create(@RequestBody MessageDTO messageDTO) {
+    @Validated(Operation.OnCreate.class)
+    public ResponseEntity<MessageDTO> create(@Valid @RequestBody MessageDTO messageDTO) {
         LOG.info("Save message={}", messageDTO);
         Person person = persons.findById(messageDTO.getPersonId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -112,13 +117,12 @@ public class MessageController {
      * @throws IllegalAccessException    exception
      */
     @PatchMapping("/")
-    public ResponseEntity<MessageDTO> updateMessage(@RequestBody MessageDTO messageDTO)
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<MessageDTO> updateMessage(@Valid @RequestBody MessageDTO messageDTO)
             throws InvocationTargetException, IllegalAccessException {
-        Optional<Message> current = messages.findById(messageDTO.getId());
-        if (current.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-        MessageDTO currentDTO = messages.domainToDTO(current.get());
+        Message current = messages.findById(messageDTO.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        MessageDTO currentDTO = messages.domainToDTO(current);
         currentDTO = messages.pathUpdate(currentDTO, messageDTO);
         messages.save(messages.dtoToDomain(currentDTO));
         return new ResponseEntity<>(
@@ -128,7 +132,8 @@ public class MessageController {
     }
 
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody MessageDTO messageDTO) {
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<Void> update(@Valid @RequestBody MessageDTO messageDTO) {
         LOG.info("Update message={}", messageDTO);
         Message message = messages.dtoToDomain(messageDTO);
         this.messages.save(message);

@@ -5,17 +5,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.chat.domain.Person;
 import ru.job4j.chat.domain.PersonDTO;
 import ru.job4j.chat.domain.Role;
+import ru.job4j.chat.handlers.Operation;
 import ru.job4j.chat.service.PersonService;
 import ru.job4j.chat.service.RoleService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
@@ -26,8 +29,9 @@ import java.util.Optional;
  * 3.4. Spring
  * 3.4.8. Rest
  * 2. Создания чата на Rest API. [#9143]
- * PersonController rest api модели person.
  * 5. Обработка исключений и Spring REST [#504797]
+ * 8. Валидация моделей в Spring REST [#504801]
+ * PersonController rest api модели person.
  *
  * @author Dmitry Stepanov, user Dmitry
  * @since 13.07.2022
@@ -90,18 +94,11 @@ public class PersonController {
      * @return ResponseEntity
      */
     @PostMapping("/")
-    public ResponseEntity<Person> create(@RequestBody PersonDTO personDTO) {
+    @Validated(Operation.OnCreate.class)
+    public ResponseEntity<Person> create(@Valid @RequestBody PersonDTO personDTO) {
         LOG.info("Save person={}", personDTO);
         Role role = roles.findById(personDTO.getRoleId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        if (personDTO.getLogin() == null || personDTO.getPassword() == null) {
-            throw new NullPointerException("Invalid login or password");
-        }
-        if (personDTO.getPassword().length() < 6) {
-            throw new IllegalArgumentException(
-                    "Invalid password. "
-                            + "Password length must be more than 5 characters.");
-        }
         personDTO.setPassword(encoder.encode(personDTO.getPassword()));
         Person person = Person.of(personDTO.getLogin(), personDTO.getPassword(), role);
         return new ResponseEntity<>(
@@ -116,26 +113,20 @@ public class PersonController {
      * @param personDTO PersonDTO
      * @return ResponseEntity
      * @throws InvocationTargetException exception
-     * @throws IllegalAccessException exception
+     * @throws IllegalAccessException    exception
      */
     @PatchMapping("/")
-    public ResponseEntity<PersonDTO> updatePerson(@RequestBody PersonDTO personDTO) throws InvocationTargetException, IllegalAccessException {
-        Optional<Person> current = persons.findById(personDTO.getId());
-        if (current.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-        if (personDTO.getPassword() != null && personDTO.getPassword().length() < 6) {
-            throw new IllegalArgumentException(
-                    "Invalid password. "
-                            + "Password length must be more than 5 characters.");
-        }
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<PersonDTO> updatePerson(@Valid @RequestBody PersonDTO personDTO) throws InvocationTargetException, IllegalAccessException {
+        Person current = persons.findById(personDTO.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (personDTO.getPassword() != null) {
             personDTO.setPassword(encoder.encode(personDTO.getPassword()));
         }
-        PersonDTO currentDTO = persons.domainToDTO(current.get());
+        PersonDTO currentDTO = persons.domainToDTO(current);
         currentDTO = persons.pathUpdate(currentDTO, personDTO);
-        current = Optional.of(persons.dtoToDomain(currentDTO));
-        persons.save(current.get());
+        current = persons.dtoToDomain(currentDTO);
+        persons.save(current);
         return new ResponseEntity<>(
                 currentDTO,
                 HttpStatus.OK
@@ -149,16 +140,9 @@ public class PersonController {
      * @return ResponseEntity
      */
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody PersonDTO personDTO) {
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<Void> update(@Valid @RequestBody PersonDTO personDTO) {
         LOG.info("Update person={}", personDTO);
-        if (personDTO.getLogin() == null || personDTO.getPassword() == null) {
-            throw new NullPointerException("Invalid login or password");
-        }
-        if (personDTO.getPassword().length() < 6) {
-            throw new IllegalArgumentException(
-                    "Invalid password. "
-                            + "Password length must be more than 5 characters.");
-        }
         personDTO.setPassword(encoder.encode(personDTO.getPassword()));
         this.persons.save(persons.dtoToDomain(personDTO));
         return ResponseEntity.ok().build();

@@ -1,6 +1,9 @@
 package ru.job4j.chat.domain;
 
+import ru.job4j.chat.handlers.Operation;
+
 import javax.persistence.*;
+import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
 /**
@@ -18,14 +21,19 @@ import java.util.Objects;
 public class Message {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @NotNull(message = "Id must be non null", groups = {
+            Operation.OnUpdate.class, Operation.OnDelete.class
+    })
     private int id;
     @Column(name = "message_text")
     private String text;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "person_id")
+    @NotNull(message = "Person must be not null")
     private Person person;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id")
+    @NotNull(message = "Room must be not null")
     private Room room;
 
     public static Message of(String text, Person person, Room room) {

@@ -5,13 +5,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.chat.domain.Role;
+import ru.job4j.chat.handlers.Operation;
 import ru.job4j.chat.service.RoleService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
@@ -23,8 +26,9 @@ import java.util.Optional;
  * 3.4. Spring
  * 3.4.8. Rest
  * 2. Создания чата на Rest API. [#9143]
- * RoleController rest api модели role.
  * 5. Обработка исключений и Spring REST [#504797]
+ * 8. Валидация моделей в Spring REST [#504801]
+ * RoleController rest api модели role.
  *
  * @author Dmitry Stepanov, user Dmitry
  * @since 13.07.2022
@@ -34,10 +38,8 @@ import java.util.Optional;
 public class RoleController {
     private static final Logger LOG = LoggerFactory.getLogger(RoleController.class.getSimpleName());
     private final RoleService roles;
-    private final ObjectMapper objectMapper;
 
-    public RoleController(RoleService roles, ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public RoleController(RoleService roles) {
         this.roles = roles;
     }
 
@@ -62,19 +64,13 @@ public class RoleController {
     /**
      * Создание новой записи через Map и DTO
      *
-     * @param body Map
+     * @param role Role
      * @return ResponseEntity
      */
     @PostMapping("/")
-    public ResponseEntity<Role> create(@RequestBody Map<String, String> body) {
-        Role role = Role.of(body.get("name"));
+    @Validated(Operation.OnCreate.class)
+    public ResponseEntity<Role> create(@Valid @RequestBody Role role) {
         LOG.info("Create role={}", role);
-        if (role.getName() == null) {
-            throw new NullPointerException("Invalid role name");
-        }
-        if (!role.getName().startsWith("ROLE_")) {
-            throw new IllegalArgumentException("Invalid Role name. Role name start with 'ROLE_'");
-        }
         return new ResponseEntity<>(
                 this.roles.save(role),
                 HttpStatus.CREATED
@@ -90,17 +86,13 @@ public class RoleController {
      * @throws IllegalAccessException    exception
      */
     @PatchMapping("/")
-    public ResponseEntity<Role> updatePatch(@RequestBody Role role) throws InvocationTargetException, IllegalAccessException {
-        Optional<Role> current = roles.findById(role.getId());
-        if (current.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-        current = Optional.of(roles.pathUpdate(current.get(), role));
-        if (!current.get().getName().startsWith("ROLE_")) {
-            throw new IllegalArgumentException("Invalid Role name. Role name start with 'ROLE_'");
-        }
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<Role> updatePatch(@Valid @RequestBody Role role) throws InvocationTargetException, IllegalAccessException {
+        Role current = roles.findById(role.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        current = roles.pathUpdate(current, role);
         return new ResponseEntity<>(
-                roles.save(current.get()),
+                roles.save(current),
                 HttpStatus.OK
         );
     }
@@ -108,20 +100,13 @@ public class RoleController {
     /**
      * Обновление модели через Map DTO.
      *
-     * @param body Map
+     * @param role Role
      * @return ResponseEntity
      */
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody Map<String, String> body) {
-        Role role = Role.of(body.get("name"));
-        role.setId(Integer.parseInt(body.get("id")));
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<Void> update(@Valid @RequestBody Role role) {
         LOG.info("Update role={}", role);
-        if (role.getName() == null) {
-            throw new NullPointerException("Invalid role name");
-        }
-        if (!role.getName().startsWith("ROLE_")) {
-            throw new IllegalArgumentException("Invalid Role name. Role name start with 'ROLE_'");
-        }
         this.roles.save(role);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -133,17 +118,5 @@ public class RoleController {
         role.setId(id);
         this.roles.delete(role);
         return ResponseEntity.status(HttpStatus.ACCEPTED).build();
-    }
-
-    @ExceptionHandler(value = {IllegalArgumentException.class})
-    public void exceptionHandler(Exception e, HttpServletRequest request,
-                                 HttpServletResponse response) throws IOException {
-        response.setStatus(HttpStatus.BAD_REQUEST.value());
-        response.setContentType("application/json");
-        response.getWriter().write(objectMapper.writeValueAsString(new HashMap<>() {{
-            put("message", e.getMessage());
-            put("type", e.getClass());
-        }}));
-        LOG.error(e.getLocalizedMessage());
     }
 }

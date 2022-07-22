@@ -4,15 +4,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.chat.domain.Person;
 import ru.job4j.chat.domain.Room;
 import ru.job4j.chat.domain.RoomDTO;
+import ru.job4j.chat.handlers.Operation;
 import ru.job4j.chat.service.PersonService;
 import ru.job4j.chat.service.RoomService;
 
+import javax.validation.Valid;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Optional;
 
@@ -21,6 +24,7 @@ import java.util.Optional;
  * 3.4. Spring
  * 3.4.8. Rest
  * 2. Создания чата на Rest API. [#9143]
+ * 8. Валидация моделей в Spring REST [#504801]
  * RoomController rest api модели role.
  *
  * @author Dmitry Stepanov, user Dmitry
@@ -80,12 +84,10 @@ public class RoomController {
      * @return ResponseEntity
      */
     @PostMapping("/")
-    public ResponseEntity<RoomDTO> create(@RequestBody RoomDTO roomDTO) {
+    @Validated(Operation.OnCreate.class)
+    public ResponseEntity<RoomDTO> create(@Valid @RequestBody RoomDTO roomDTO) {
         LOG.info("Create room={}", roomDTO);
-        if (roomDTO.getName() == null) {
-            throw new NullPointerException("Invalid room name");
-        }
-        var admin = persons.findById(roomDTO.getAdminId())
+        Person admin = persons.findById(roomDTO.getAdminId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         Room room = Room.of(roomDTO.getName(), admin);
         return new ResponseEntity<>(
@@ -103,15 +105,14 @@ public class RoomController {
      * @throws IllegalAccessException    exception
      */
     @PatchMapping("/")
-    public ResponseEntity<RoomDTO> updateRoom(@RequestBody RoomDTO roomDTO) throws InvocationTargetException, IllegalAccessException {
-        Optional<Room> current = rooms.findById(roomDTO.getId());
-        if (current.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
-        RoomDTO currentDTO = rooms.domainToDTO(current.get());
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<RoomDTO> updateRoom(@Valid @RequestBody RoomDTO roomDTO) throws InvocationTargetException, IllegalAccessException {
+        Room current = rooms.findById(roomDTO.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        RoomDTO currentDTO = rooms.domainToDTO(current);
         currentDTO = rooms.pathUpdate(currentDTO, roomDTO);
-        current = Optional.of(rooms.dtoToDomain(currentDTO));
-        rooms.save(current.get());
+        current = rooms.dtoToDomain(currentDTO);
+        rooms.save(current);
         return new ResponseEntity<>(
                 currentDTO,
                 HttpStatus.OK
@@ -125,11 +126,9 @@ public class RoomController {
      * @return ResponseEntity
      */
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody RoomDTO roomDTO) {
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<Void> update(@Valid @RequestBody RoomDTO roomDTO) {
         LOG.info("Update room={}", roomDTO);
-        if (roomDTO.getName() == null) {
-            throw new NullPointerException("Invalid room name");
-        }
         Room room = rooms.dtoToDomain(roomDTO);
         this.rooms.save(room);
         return ResponseEntity.ok().build();
