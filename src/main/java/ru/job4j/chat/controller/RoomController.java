@@ -16,6 +16,7 @@ import ru.job4j.chat.service.PersonService;
 import ru.job4j.chat.service.RoomService;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Optional;
 
@@ -30,6 +31,7 @@ import java.util.Optional;
  * @author Dmitry Stepanov, user Dmitry
  * @since 13.07.2022
  */
+@Validated
 @RestController
 @RequestMapping("/room")
 public class RoomController {
@@ -61,7 +63,7 @@ public class RoomController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Room> findById(@PathVariable int id) {
+    public ResponseEntity<Room> findById(@PathVariable @Min(1) int id) {
         LOG.info("Room find by id={}", id);
         Optional<Room> room = this.rooms.findById(id);
         room.ifPresent(r -> r.setAdmin(
@@ -135,7 +137,7 @@ public class RoomController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable int id) {
+    public ResponseEntity<Void> delete(@PathVariable @Min(1) int id) {
         LOG.info("Delete room by id={}", id);
         Room room = new Room();
         room.setId(id);

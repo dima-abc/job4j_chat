@@ -18,6 +18,7 @@ import ru.job4j.chat.service.PersonService;
 import ru.job4j.chat.service.RoomService;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +34,7 @@ import java.util.Optional;
  * @author Dmitry Stepanov, user Dima_Nout
  * @since 13.07.2022
  */
+@Validated
 @RestController
 @RequestMapping("/message")
 public class MessageController {
@@ -66,7 +68,7 @@ public class MessageController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Message> findById(@PathVariable int id) {
+    public ResponseEntity<Message> findById(@PathVariable @Min(1) int id) {
         LOG.info("Message find by id={}", id);
         Optional<Message> message = this.messages.findById(id);
         message.ifPresent(m -> {
@@ -141,7 +143,7 @@ public class MessageController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable int id) {
+    public ResponseEntity<Void> delete(@PathVariable @Min(1) int id) {
         LOG.info("Delete message by id={}", id);
         Message message = new Message();
         message.setId(id);
@@ -150,7 +152,7 @@ public class MessageController {
     }
 
     @GetMapping("/room/{id}")
-    public List<Message> findAllByRoom(@PathVariable int id) {
+    public List<Message> findAllByRoom(@PathVariable @Min(1) int id) {
         LOG.info("Find all message by room_id={}", id);
         Room room = this.rest.getForObject(API_ROOM_ID, Room.class, id);
         List<Message> result = this.messages.fidAllByRoom(room);
@@ -163,7 +165,7 @@ public class MessageController {
     }
 
     @GetMapping("/person/{id}")
-    public List<Message> findAllByPerson(@PathVariable int id) {
+    public List<Message> findAllByPerson(@PathVariable @Min(1) int id) {
         LOG.info("Find all message by person_id={}", id);
         Person person = this.rest.getForObject(API_PERSON_ID, Person.class, id);
         List<Message> result = this.messages.findAllByPerson(person);

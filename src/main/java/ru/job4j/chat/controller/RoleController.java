@@ -15,6 +15,7 @@ import ru.job4j.chat.service.RoleService;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
@@ -33,6 +34,7 @@ import java.util.Optional;
  * @author Dmitry Stepanov, user Dmitry
  * @since 13.07.2022
  */
+@Validated
 @RestController
 @RequestMapping("/role")
 public class RoleController {
@@ -50,7 +52,7 @@ public class RoleController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Role> findById(@PathVariable int id) {
+    public ResponseEntity<Role> findById(@PathVariable @Min(1) int id) {
         LOG.info("Find role by id={}", id);
         Optional<Role> role = this.roles.findById(id);
         return new ResponseEntity<>(
@@ -112,7 +114,7 @@ public class RoleController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable int id) {
+    public ResponseEntity<Void> delete(@PathVariable @Min(1) int id) {
         LOG.info("Delete role by id={}", id);
         Role role = new Role();
         role.setId(id);

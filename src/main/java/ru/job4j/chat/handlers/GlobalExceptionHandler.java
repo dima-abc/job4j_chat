@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.ConstraintViolationException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,18 +48,34 @@ public class GlobalExceptionHandler {
         LOG.error(e.getMessage());
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handle(MethodArgumentNotValidException e) {
+    @ExceptionHandler({MethodArgumentNotValidException.class})
+    public ResponseEntity<?> handleMethodArgument(MethodArgumentNotValidException e) {
         return ResponseEntity.badRequest().body(
                 e.getFieldErrors().stream()
                         .map(f -> Map.of(
                                 f.getField(),
-                                String.format("%s. Actual value: %s", f.getDefaultMessage(), f.getRejectedValue())
+                                String.format("%s. Actual value: %s",
+                                        f.getDefaultMessage(),
+                                        f.getRejectedValue())
                         ))
-                        .peek(f -> LOG.error("Error {}, {}", f.keySet(), f.values()))
+                        .peek(f -> LOG.error("Error {}, {}",
+                                f.keySet(), f.values()))
                         .collect(Collectors.toList())
         );
-
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<?> handleConstrain(ConstraintViolationException e) {
+        return ResponseEntity.badRequest().body(
+                e.getConstraintViolations().stream()
+                        .map(c -> Map.of(
+                                c.getPropertyPath().toString(),
+                                String.format("%s. Actual value: %s",
+                                        c.getMessage(),
+                                        c.getInvalidValue())
+                        ))
+                        .peek(c -> LOG.error("Error {}, {}",
+                                c.keySet(), c.values()))
+        );
+    }
 }
